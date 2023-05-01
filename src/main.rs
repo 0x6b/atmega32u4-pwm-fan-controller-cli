@@ -15,7 +15,7 @@ const TX_UUID: &str = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 #[structopt(name = "fanctl", about = "Control the fan speed")]
 struct Args {
     /// Fan speed in percentage
-    #[structopt(default_value = "0")]
+    #[structopt(default_value = "10")]
     speed: u8,
 }
 
