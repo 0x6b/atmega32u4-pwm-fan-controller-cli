@@ -14,7 +14,7 @@ const TX_UUID: &str = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 #[derive(Debug, StructOpt)]
 #[structopt(name = "fanctl", about = "Control the fan speed")]
 struct Args {
-    /// Fan speed in range 0-255
+    /// Fan speed in percentage
     #[structopt(default_value = "0")]
     speed: u8,
 }
@@ -43,11 +43,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 let characteristic = get_tx_characteristic(&peripheral).await?;
                 println!("Found TX UART characteristic: {}", characteristic.uuid);
 
-                let speed = args.speed.to_string();
+                let speed = if args.speed > 100 {
+                    100
+                } else {
+                    args.speed
+                };
+                // treat speed as percentage, convert it to 0-255 range
+                let speed = (speed as f32 * 2.55) as u8;
+                println!("Speed: {}", speed);
+
+                let speed = speed.to_string();
                 peripheral
                     .write(&characteristic, speed.as_bytes(), WriteType::WithResponse)
                     .await?;
-                println!("Wrote {} to the UART", speed);
+                println!("Wrote {} ({}%) to the UART", speed, args.speed);
 
                 peripheral.disconnect().await?;
                 println!("Disconnected from peripheral");
