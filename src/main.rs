@@ -1,7 +1,14 @@
 use std::{error::Error, time::Duration};
 
 use btleplug::{
-    api::{Central, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType},
+    api::{
+        Central,
+        Characteristic,
+        Manager as _,
+        Peripheral as _,
+        ScanFilter,
+        WriteType::WithResponse,
+    },
     platform::{Adapter, Manager, Peripheral},
 };
 use structopt::StructOpt;
@@ -9,9 +16,6 @@ use tokio::time;
 use tracing::{error, info};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
-
-// https://learn.adafruit.com/adafruit-feather-32u4-bluefruit-le/uart-service
-const TX_UUID: &str = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "fanctl", about = "Control the fan speed")]
@@ -27,10 +31,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     let args = Args::from_args();
-    let manager = Manager::new().await?; // always Ok
+    let manager = Manager::new().await?;
     let adapter = get_first_adapter(&manager).await.unwrap();
 
-    info!("Using first adapter found: {}", adapter.adapter_info().await?); // always Ok
+    info!(
+        "Using first adapter found: {}",
+        adapter.adapter_info().await?
+    );
 
     if let Err(why) = adapter.start_scan(ScanFilter::default()).await {
         error!("Can't scan BLE adapter: {why}");
@@ -40,42 +47,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         match find_adafruit_ble(&adapter).await {
             None => time::sleep(Duration::from_millis(10)).await,
-            Some(peripheral) => {
-                let prop = &peripheral.properties().await?; // always Ok
-                let prop = match prop {
-                    None => {
-                        info!("No properties found for peripheral");
-                        continue;
-                    }
-                    Some(prop) => prop,
-                };
-                info!("Found peripheral: {}", prop.local_name.as_ref().unwrap_or(&"Unknown".to_string()));
+            Some(p) => {
+                info!("Found peripheral: {}", get_peripheral_local_name(&p).await);
 
-                let characteristic = match get_tx_characteristic(&peripheral).await {
-                    Ok(c) => c,
+                let char = match get_tx_characteristic(&p).await {
+                    Ok(c) => {
+                        info!("Found TX UART characteristic: {}", c.uuid);
+                        c
+                    }
                     Err(why) => {
-                        info!("Can't get TX UART characteristic: {why}");
+                        error!("Can't get TX UART characteristic: {why}");
                         return Err(why);
                     }
                 };
-                info!("Found TX UART characteristic: {}", characteristic.uuid);
 
-                let speed = if args.speed > 100 {
-                    100
-                } else {
-                    args.speed
-                };
+                let speed = convert_percentage_to_pwm_duty_cycle(args.speed);
 
-                // treat speed as percentage, convert it to 0-255 range
-                let speed = (speed as f32 * 2.55) as u8;
-                let speed = speed.to_string();
-
-                peripheral
-                    .write(&characteristic, speed.as_bytes(), WriteType::WithResponse)
-                    .await?; // always Ok
+                p.write(&char, speed.to_string().as_bytes(), WithResponse)
+                    .await?;
                 info!("Speed set: {}% ({}/255)", args.speed, speed);
 
-                peripheral.disconnect().await?; // always Ok
+                p.disconnect().await?;
                 info!("Disconnected from peripheral");
 
                 break;
@@ -86,9 +78,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+async fn get_peripheral_local_name(peripheral: &Peripheral) -> String {
+    let prop = peripheral.properties().await.unwrap();
+    match prop {
+        None => {
+            info!("No properties found for peripheral");
+            "Unknown".to_string()
+        }
+        Some(prop) => prop.local_name.unwrap_or("Unknown".to_string()),
+    }
+}
+
+fn convert_percentage_to_pwm_duty_cycle(percentage: u8) -> u8 {
+    let speed = if percentage > 100 { 100 } else { percentage };
+    // convert 0-100 to 0-255
+    (speed as f32 * 2.55) as u8
+}
+
 async fn get_first_adapter(manager: &Manager) -> Option<Adapter> {
-    manager.adapters().await.unwrap() // always Ok
-        .into_iter().next()
+    manager.adapters().await.unwrap().into_iter().next()
 }
 
 async fn find_adafruit_ble(adapter: &Adapter) -> Option<Peripheral> {
@@ -107,14 +115,15 @@ async fn find_adafruit_ble(adapter: &Adapter) -> Option<Peripheral> {
     None
 }
 
-async fn get_tx_characteristic(peripheral: &Peripheral) -> Result<Characteristic, Box<dyn Error>> {
-    peripheral.connect().await?; // always Ok
-    peripheral.discover_services().await?; // always Ok
-    let uuid = Uuid::parse_str(TX_UUID).unwrap(); // always Ok
-    for c in peripheral.characteristics().iter() {
-        if c.uuid == uuid {
-            return Ok(c.clone());
-        }
-    }
-    Err("Could not find TX characteristic".into())
+async fn get_tx_characteristic(p: &Peripheral) -> Result<Characteristic, Box<dyn Error>> {
+    // https://learn.adafruit.com/adafruit-feather-32u4-bluefruit-le/uart-service
+    let uuid = Uuid::parse_str("6e400002-b5a3-f393-e0a9-e50e24dcca9e").unwrap();
+
+    p.connect().await?;
+    p.discover_services().await?;
+    p.characteristics()
+        .iter()
+        .find(|c| c.uuid == uuid)
+        .cloned()
+        .ok_or("Could not find TX characteristic".into())
 }
