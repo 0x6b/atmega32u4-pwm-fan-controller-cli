@@ -17,21 +17,18 @@ $ cargo install --git https://github.com/0x6b/atmega32u4-pwm-fan-controller-cli
 
 ```console
 $ fanctl -h
-fanctl 0.1.0
-Control the fan speed
+Control the fan speed of a PWM fan connected to an ATmega32U4 microcontroller via Bluetooth LE
 
-USAGE:
-    fanctl [speed]
+Usage: fanctl [SPEED]
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+Arguments:
+  [SPEED]  Fan speed in percentage [default: 10]
 
-ARGS:
-    <speed>    Fan speed in percentage [default: 10]
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
 ## LICENSE
 
 MIT. See [LICENSE](LICENSE) for details.
-
