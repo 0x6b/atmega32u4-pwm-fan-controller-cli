@@ -2,12 +2,7 @@ use std::{error::Error, time::Duration};
 
 use btleplug::{
     api::{
-        Central,
-        Characteristic,
-        Manager as _,
-        Peripheral as _,
-        ScanFilter,
-        WriteType::WithResponse,
+        Central, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType::WithResponse,
     },
     platform::{Adapter, Manager, Peripheral},
 };
