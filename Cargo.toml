@@ -2,6 +2,7 @@
 name = "atmega32u4-pwm-fan-controller-cli"
 version = "0.1.0"
 edition = "2021"
+description = "Control the fan speed of a PWM fan connected to an ATmega32U4 microcontroller via Bluetooth LE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 btleplug = "0.10.5"
-structopt = "0.3.26"
+clap = { version = "4.3.4", features = ["derive"] }
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"

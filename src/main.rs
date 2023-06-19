@@ -11,17 +11,17 @@ use btleplug::{
     },
     platform::{Adapter, Manager, Peripheral},
 };
-use structopt::StructOpt;
+use clap::Parser;
 use tokio::time;
 use tracing::{error, info};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "fanctl", about = "Control the fan speed")]
+#[derive(Debug, Parser)]
+#[clap(about, version)]
 struct Args {
     /// Fan speed in percentage
-    #[structopt(default_value = "10")]
+    #[arg(default_value = "10")]
     speed: u8,
 }
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    let args = Args::from_args();
+    let args = Args::parse();
     let manager = Manager::new().await?;
     let adapter = get_first_adapter(&manager).await.unwrap();
 
