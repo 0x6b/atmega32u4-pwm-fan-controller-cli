@@ -1,6 +1,6 @@
 [package]
 name = "atmega32u4-pwm-fan-controller-cli"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Control the fan speed of a PWM fan connected to an ATmega32U4 microcontroller via Bluetooth LE"
 
@@ -11,7 +11,7 @@ name = "fanctl"
 path = "src/main.rs"
 
 [dependencies]
-btleplug = "0.10.5"
+btleplug = "0.11.0"
 clap = { version = "4.3.4", features = ["derive"] }
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.37"

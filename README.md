@@ -13,6 +13,8 @@ Companion CLI for [atmega32u4-pwm-fan-controller](https://github.com/0x6b/atmega
 $ cargo install --git https://github.com/0x6b/atmega32u4-pwm-fan-controller-cli
 ```
 
+For macOS, you have to permit your terminal bluetooth access.
+ 
 ## Usage
 
 ```console
