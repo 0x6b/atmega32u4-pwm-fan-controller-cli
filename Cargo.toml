@@ -1,6 +1,6 @@
 [package]
 name = "atmega32u4-pwm-fan-controller-cli"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Control the fan speed of a PWM fan connected to an ATmega32U4 microcontroller via Bluetooth LE"
 
